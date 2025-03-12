@@ -1,4 +1,5 @@
 #include "../include/consumer.h"
+#include <string.h>
 
 kafka_input_t initKafkaInput(const char *bootstrap_servers, const char *group_id, const char *auto_offset_reset)
 {
@@ -40,7 +41,45 @@ bool kafkaInputSubscribe(kafka_input_t *input, const char *topic)
         return false;
     }
 
+    return true;
+}
+
+char *pollMessage(kafka_input_t *input)
+{
     rd_kafka_poll_set_consumer(input->consumer);
 
-    return true;
+    rd_kafka_message_t *message;
+    message = rd_kafka_consumer_poll(input->consumer, 500);
+
+    if (!message)
+    {
+        return NULL;
+    }
+
+    if (message->err)
+    {
+        if (message->err == RD_KAFKA_RESP_ERR__PARTITION_EOF)
+        {
+            fprintf(stdout, "End of partition reached\n");
+        }
+        else
+        {
+            fprintf(stderr, "Consumer error: %s\n", rd_kafka_message_errstr(message));
+        }
+        rd_kafka_message_destroy(message);
+        return NULL;
+    }
+
+    char *payload_copy = (char *)malloc(message->len + 1);
+    if (!payload_copy)
+    {
+        fprintf(stderr, "Failed to allocate memory for message payload\n");
+        rd_kafka_message_destroy(message);
+        return NULL;
+    }
+    memcpy(payload_copy, message->payload, message->len);
+    payload_copy[message->len] = '\0';
+
+    rd_kafka_message_destroy(message);
+    return payload_copy;
 }
