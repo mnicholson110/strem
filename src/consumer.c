@@ -28,7 +28,7 @@ kafka_input_t initKafkaInput(const char *bootstrap_servers, const char *group_id
 
 bool kafkaInputSubscribe(kafka_input_t *input, const char *topic)
 {
-    rd_kafka_topic_partition_list_t *sub = rd_kafka_topic_partition_list_new(1);
+    rd_kafka_topic_partition_list_t *sub = rd_kafka_topic_partition_list_new(3);
     rd_kafka_topic_partition_list_add(sub, topic, RD_KAFKA_PARTITION_UA);
 
     input->error = rd_kafka_subscribe(input->consumer, sub);

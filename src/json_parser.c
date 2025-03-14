@@ -7,9 +7,9 @@ json_object *json_get_nested_value(json_object *root, const char *path)
         return NULL;
     }
 
-    char *path_copy = strdup(path);
     char *token;
     char *saveptr;
+    char *path_copy = strdup(path);
     json_object *current = root;
 
     token = strtok_r(path_copy, "/", &saveptr);
