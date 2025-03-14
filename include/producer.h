@@ -17,6 +17,6 @@ typedef struct kafka_output
 } kafka_output_t;
 
 kafka_output_t initKafkaOutput(const char *bootstrap_servers, const char *topic);
-void produceMessage(kafka_output_t *output, const char *message);
+void produceMessage(kafka_output_t *output, const char *key, const char *value);
 
 #endif

@@ -5,7 +5,7 @@ all: $(TARGET)
 
 $(TARGET): $(SRC)
 	mkdir -p bin 
-	gcc -o $(TARGET) $(SRC) -lrdkafka -ljson-c
+	gcc -Wall -O3 -o $(TARGET) $(SRC) -lrdkafka -ljson-c
 
 clean:
 	rm -rf bin/

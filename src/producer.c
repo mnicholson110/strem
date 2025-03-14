@@ -23,17 +23,26 @@ kafka_output_t initKafkaOutput(const char *bootstrap_servers, const char *topic)
     return output;
 }
 
-void produceMessage(kafka_output_t *output, const char *message)
+void produceMessage(kafka_output_t *output, const char *key, const char *value)
 {
-    size_t len = strlen(message);
+    size_t len = strlen(value);
     if (len == 0)
     {
         rd_kafka_poll(output->producer, 0);
         return;
     }
 
+    size_t key_len = strlen(key);
+
 retry:
-    output->error = rd_kafka_producev(output->producer, RD_KAFKA_V_TOPIC(output->topic), RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY), RD_KAFKA_V_VALUE(message, len), RD_KAFKA_V_OPAQUE(NULL), RD_KAFKA_V_END);
+    output->error = rd_kafka_producev(
+        output->producer,
+        RD_KAFKA_V_TOPIC(output->topic),
+        RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
+        RD_KAFKA_V_KEY(key, key_len),
+        RD_KAFKA_V_VALUE(value, len),
+        RD_KAFKA_V_OPAQUE(NULL),
+        RD_KAFKA_V_END);
 
     if (output->error)
     {

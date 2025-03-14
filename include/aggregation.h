@@ -5,13 +5,13 @@
 #include <stdbool.h>
 #include <uthash.h>
 
-// this need to be more generic. char* key?
 typedef struct
 {
     const char *key;
     int count;
     double value;
     UT_hash_handle hh;
+    const char **values;
 } accumulator_t;
 
 const char *serialize(accumulator_t *entry);

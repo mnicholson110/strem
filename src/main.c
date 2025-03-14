@@ -40,7 +40,7 @@ int main()
             if (strcmp(status, "Delivered") == 0)
             {
                 const char *store_id = getCValue(const char *, root_obj, "data/store/store_id");
-                double order_amount = getCValue(double, root_obj, "data/order/order_amount/");
+                double order_amount = getCValue(double, root_obj, "data/order/order_amount");
 
                 entry = NULL;
                 HASH_FIND_STR(state, store_id, entry);
@@ -62,7 +62,7 @@ int main()
                     entry->count++;
                     entry->value += order_amount;
                 }
-                produceMessage(&output, serialize(entry));
+                produceMessage(&output, entry->key, serialize(entry));
             }
             json_object_put(root_obj);
         }
