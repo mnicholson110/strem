@@ -5,16 +5,19 @@
 #include <stdbool.h>
 #include <uthash.h>
 
-typedef struct
+typedef struct accumulator
 {
     const char *key;
     int count;
-    double value;
-    UT_hash_handle hh;
+    const char **fields;
+    const char **transforms;
     const char **values;
+    UT_hash_handle hh;
 } accumulator_t;
 
 const char *serialize(accumulator_t *entry);
+accumulator_t *deserialize(json_object *object);
+accumulator_t *sum(accumulator_t *entry, double value);
 
 // aggregation functions
 // max, min, sum, count, avg, ?

@@ -1,68 +1,60 @@
 #include <json-c/json_object.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <uthash.h>
 
 #include "../include/aggregation.h"
+#include "../include/config.h"
 #include "../include/consumer.h"
 #include "../include/json_parser.h"
 #include "../include/producer.h"
 
+volatile sig_atomic_t run = true;
+
+void sigterm_handle(int sig)
+{
+    run = false;
+}
+
 int main()
 {
+    signal(SIGINT, sigterm_handle);
+    signal(SIGTERM, sigterm_handle);
 
-    kafka_input_t input = initKafkaInput("localhost:9092", "new_group", "earliest");
+    strem_config_t *config = loadConfig();
 
-    if (!kafkaInputSubscribe(&input, "order_db.order_schema.order"))
-    {
-        exit(EXIT_FAILURE);
-    }
+    kafka_input_t *input = initKafkaInput(config);
+    kafka_output_t *output = initKafkaOutput(config);
 
     char *message = NULL;
     accumulator_t *state = NULL;
+    accumulator_t *entry = NULL;
+    // const char *out_message = NULL;
 
-    kafka_output_t output = initKafkaOutput("localhost:9092", "new_topic");
-
-    while (1)
+    while (run)
     {
-        message = pollMessage(&input);
+        message = pollMessage(input);
 
         if (!message)
         {
-            // fprintf(stdout, "No Message\n");
             continue;
         }
 
         json_object *root_obj = json_tokener_parse(message);
-        accumulator_t *entry = NULL;
         if (root_obj)
         {
-            const char *status = getCValue(const char *, root_obj, "data/order/order_status");
-            if (strcmp(status, "Delivered") == 0)
+            // check for existence in hashmap
+            const char *key = jsonGetCValue(const char *, root_obj, config->output_key);
+            entry = NULL;
+            HASH_FIND_STR(state, key, entry);
+            if (!entry)
             {
-                const char *store_id = getCValue(const char *, root_obj, "data/store/store_id");
-                double order_amount = getCValue(double, root_obj, "data/order/order_amount");
-
-                entry = NULL;
-                HASH_FIND_STR(state, store_id, entry);
-                if (!entry)
-                {
-                    entry = (accumulator_t *)malloc(sizeof(accumulator_t));
-                    if (!entry)
-                    {
-                        fprintf(stderr, "Memory allocation failed\n");
-                        exit(EXIT_FAILURE);
-                    }
-                    entry->count = 1;
-                    entry->key = store_id;
-                    entry->value = order_amount;
-                    HASH_ADD_STR(state, key, entry);
-                }
-                else
-                {
-                    entry->count++;
-                    entry->value += order_amount;
-                }
-                produceMessage(&output, entry->key, serialize(entry));
+                // deserialize the entire message into an accumulator_t
+                // and add to hashmap
+            }
+            else
+            {
+                // update entry based on the transforms for each input_field
             }
             json_object_put(root_obj);
         }
@@ -74,8 +66,21 @@ int main()
         free(message);
     }
 
-    rd_kafka_consumer_close(input.consumer);
-    rd_kafka_destroy(input.consumer);
+    accumulator_t *tmp;
+    entry = NULL;
+    HASH_ITER(hh, state, entry, tmp)
+    {
+        HASH_DEL(state, entry);
+        free(entry);
+    }
+
+    rd_kafka_consumer_close(input->consumer);
+    rd_kafka_destroy(input->consumer);
+    rd_kafka_destroy(output->producer);
+    freeConfig(config);
+    free(input);
+    free((void *)output->output_topic);
+    free(output);
 
     return 0;
 }

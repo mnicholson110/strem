@@ -1,22 +1,17 @@
 #include "../include/producer.h"
 
-kafka_output_t initKafkaOutput(const char *bootstrap_servers, const char *topic)
+kafka_output_t *initKafkaOutput(strem_config_t *config)
 {
-    kafka_output_t output =
-        {
-            .producer = NULL,
-            .config = rd_kafka_conf_new(),
-            .bootstrap_servers = bootstrap_servers,
-            .topic = topic,
-        };
+    kafka_output_t *output = (kafka_output_t *)malloc(sizeof(kafka_output_t));
 
     // need to add error handling here
-    rd_kafka_conf_set(output.config, "bootstrap.servers", output.bootstrap_servers, output.errstr, sizeof(output.errstr));
-    output.producer = rd_kafka_new(RD_KAFKA_PRODUCER, output.config, output.errstr, sizeof(output.errstr));
+    rd_kafka_conf_set(output->config, "bootstrap.servers", config->output_bootstrap_servers, output->errstr, sizeof(output->errstr));
+    output->producer = rd_kafka_new(RD_KAFKA_PRODUCER, output->config, output->errstr, sizeof(output->errstr));
+    output->output_topic = strdup(config->output_topic);
 
-    if (!output.producer)
+    if (!output->producer)
     {
-        fprintf(stderr, "Failed to create producer: %s\n", output.errstr);
+        fprintf(stderr, "Failed to create producer: %s\n", output->errstr);
         exit(EXIT_FAILURE);
     }
 
@@ -37,7 +32,7 @@ void produceMessage(kafka_output_t *output, const char *key, const char *value)
 retry:
     output->error = rd_kafka_producev(
         output->producer,
-        RD_KAFKA_V_TOPIC(output->topic),
+        RD_KAFKA_V_TOPIC(output->output_topic),
         RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
         RD_KAFKA_V_KEY(key, key_len),
         RD_KAFKA_V_VALUE(value, len),

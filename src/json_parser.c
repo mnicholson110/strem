@@ -1,6 +1,6 @@
 #include "../include/json_parser.h"
 
-json_object *json_get_nested_value(json_object *root, const char *path)
+json_object *jsonGetNestedValue(json_object *root, const char *path)
 {
     if (!root || !path)
     {
@@ -54,9 +54,9 @@ json_object *json_get_nested_value(json_object *root, const char *path)
     return current;
 }
 
-int get_int_value(json_object *root, const char *path)
+int jsonGetIntValue(json_object *root, const char *path)
 {
-    json_object *value = json_get_nested_value(root, path);
+    json_object *value = jsonGetNestedValue(root, path);
     if (!value)
     {
         return 0;
@@ -68,9 +68,9 @@ int get_int_value(json_object *root, const char *path)
     return 0;
 }
 
-double get_double_value(json_object *root, const char *path)
+double jsonGetDoubleValue(json_object *root, const char *path)
 {
-    json_object *value = json_get_nested_value(root, path);
+    json_object *value = jsonGetNestedValue(root, path);
     if (!value)
     {
         return 0.0;
@@ -86,9 +86,9 @@ double get_double_value(json_object *root, const char *path)
     return 0.0;
 }
 
-const char *get_string_value(json_object *root, const char *path)
+const char *jsonGetStringValue(json_object *root, const char *path)
 {
-    json_object *value = json_get_nested_value(root, path);
+    json_object *value = jsonGetNestedValue(root, path);
     if (!value)
     {
         return NULL;
