@@ -8,5 +8,6 @@ export INPUT_FIELDS="/data/order/order_amount"
 #export OUTPUT_BOOTSTRAP_SERVERS=""
 export OUTPUT_TOPIC="new_topic"
 export OUTPUT_KEY="/data/store/store_id"
+export OUTPUT_FIELDS="total_order_amount"
 
 cd .. && make run

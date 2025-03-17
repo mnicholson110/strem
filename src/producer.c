@@ -38,39 +38,40 @@ kafka_output_t *initKafkaOutput()
         output->output_key = strdup(output_key);
     }
 
-    //    const char *output_fields = getenv("OUTPUT_FIELDS");
-    //    if (output_fields == NULL)
-    //    {
-    //        fprintf(stderr, "OUTPUT_FIELDS must be set.\n");
-    //        exit(EXIT_FAILURE);
-    //    }
-    //    else
-    //    {
-    //        output->output_fields = NULL;
-    //        output->output_fields_len = 0;
-    //        char *tmp_output_fields = strdup(output_fields);
-    //        char *saveptr = NULL;
-    //        char *token = strtok_r(tmp_output_fields, ":", &saveptr);
-    //        while (token != NULL)
-    //        {
-    //            const char **tokens = realloc(output->output_fields, sizeof(char *) * (output->output_fields_len + 1));
-    //            output->output_fields = tokens;
-    //            output->output_fields[output->output_fields_len] = strdup(token);
-    //            output->output_fields_len++;
-    //            token = strtok_r(NULL, ":", &saveptr);
-    //        }
-    //        free(tmp_output_fields);
-    //    }
+    const char *output_fields = getenv("OUTPUT_FIELDS");
+    if (output_fields == NULL)
+    {
+        fprintf(stderr, "OUTPUT_FIELDS must be set.\n");
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        output->output_fields = NULL;
+        output->output_fields_len = 0;
+        char *tmp_output_fields = strdup(output_fields);
+        char *saveptr = NULL;
+        char *token = strtok_r(tmp_output_fields, ":", &saveptr);
+        while (token != NULL)
+        {
+            const char **tokens = realloc(output->output_fields, sizeof(char *) * (output->output_fields_len + 1));
+            printf("post realloc\n");
+            output->output_fields = tokens;
+            output->output_fields[output->output_fields_len] = strdup(token);
+            output->output_fields_len++;
+            token = strtok_r(NULL, ":", &saveptr);
+        }
+        free(tmp_output_fields);
+    }
 
     // need to add error handling here
-    //    rd_kafka_conf_set(output->config, "bootstrap.servers", bootstrap_servers, output->errstr, sizeof(output->errstr));
-    //    output->producer = rd_kafka_new(RD_KAFKA_PRODUCER, output->config, output->errstr, sizeof(output->errstr));
+    rd_kafka_conf_set(output->config, "bootstrap.servers", bootstrap_servers, output->errstr, sizeof(output->errstr));
+    output->producer = rd_kafka_new(RD_KAFKA_PRODUCER, output->config, output->errstr, sizeof(output->errstr));
 
-    //    if (!output->producer)
-    //    {
-    //        fprintf(stderr, "Failed to create producer: %s\n", output->errstr);
-    //        exit(EXIT_FAILURE);
-    //    }
+    if (!output->producer)
+    {
+        fprintf(stderr, "Failed to create producer: %s\n", output->errstr);
+        exit(EXIT_FAILURE);
+    }
 
     fprintf(stdout, "OUTPUT_BOOTSTRAP_SERVERS: %s\n", bootstrap_servers);
     fprintf(stdout, "OUTPUT_TOPIC: %s\n", output->output_topic);

@@ -1,18 +1,23 @@
 #include "../include/aggregation.h"
+#include <stdio.h>
 
-const char *serialize(accumulator_t *entry)
+const char *serialize(accumulator_t *entry, const char **field_names)
 {
     json_object *obj = json_object_new_object();
 
-    // json_object_object_add(obj, "store_id", json_object_new_string(entry->key));
-    // json_object_object_add(obj, "count", json_object_new_int(entry->count));
-    // json_object_object_add(obj, "total_order_amount", json_object_new_double(entry->value));
+    for (int i = 0; i < entry->values_len; ++i)
+    {
+        json_object_object_add(obj, field_names[i], json_object_new_double(entry->values[i].dub));
+    }
+
+    json_object_object_add(obj, "count", json_object_new_int(entry->count));
 
     const char *json_str = json_object_to_json_string(obj);
     const char *res = strdup(json_str);
 
     json_object_put(obj);
 
+    printf("%s\n", res);
     return res;
 }
 

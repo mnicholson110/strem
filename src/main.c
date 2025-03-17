@@ -47,14 +47,12 @@ int main()
             HASH_FIND_STR(state, key, entry);
             if (!entry)
             {
-                // allocate new accumulator
                 entry = (accumulator_t *)malloc(sizeof(accumulator_t));
-                // set the key
                 entry->key = key;
-                // set the count
                 entry->count = 1;
-                // set each value
                 entry->values = malloc(sizeof(accumulator_value_t) * input->input_fields_len);
+                entry->values_len = input->input_fields_len;
+
                 for (int i = 0; i < input->input_fields_len; ++i)
                 {
                     json_object *target = jsonGetNestedValue(root_obj, input->input_fields[i]);
@@ -72,6 +70,7 @@ int main()
                     default:
                         break;
                     }
+                    json_object_put(target);
                 }
                 HASH_ADD_STR(state, key, entry);
             }
@@ -93,11 +92,14 @@ int main()
                     default:
                         break;
                     }
+                    json_object_put(target);
                 }
                 entry->count++;
             }
-            fprintf(stdout, "Store_id: %s, order count: %d, total amount: %.2f, lat: %s, long: %s\n\n", entry->key, entry->count, entry->values[0].dub, entry->values[1].str, entry->values[2].str);
             json_object_put(root_obj);
+            out_message = serialize(entry, output->output_fields);
+            produceMessage(output, entry->key, out_message);
+            free((void *)out_message);
         }
         else
         {

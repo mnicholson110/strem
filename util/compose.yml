@@ -54,7 +54,7 @@ services:
       - mock-data
     environment:
       BOOTSTRAP_SERVERS: kafka:29092
-      GROUP_ID: 1
+      GROUP_ID: debezium
       CONFIG_STORAGE_TOPIC: debezium_configs
       OFFSET_STORAGE_TOPIC: debezium_offsets
       STATUS_STORAGE_TOPIC: debezium_statuses

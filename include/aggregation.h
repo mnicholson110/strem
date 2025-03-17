@@ -25,11 +25,12 @@ typedef struct accumulator
     int count;
     // is this needed?
     // const char **fields;
+    int values_len;
     accumulator_value_t *values;
     UT_hash_handle hh;
 } accumulator_t;
 
-const char *serialize(accumulator_t *entry);
+const char *serialize(accumulator_t *entry, const char **field_names);
 accumulator_t *deserialize(json_object *object);
 accumulator_t *sum(accumulator_t *entry, double value);
 
