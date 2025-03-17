@@ -54,7 +54,6 @@ kafka_output_t *initKafkaOutput()
         while (token != NULL)
         {
             const char **tokens = realloc(output->output_fields, sizeof(char *) * (output->output_fields_len + 1));
-            printf("post realloc\n");
             output->output_fields = tokens;
             output->output_fields[output->output_fields_len] = strdup(token);
             output->output_fields_len++;
@@ -64,6 +63,8 @@ kafka_output_t *initKafkaOutput()
     }
 
     // need to add error handling here
+
+    output->config = rd_kafka_conf_new();
     rd_kafka_conf_set(output->config, "bootstrap.servers", bootstrap_servers, output->errstr, sizeof(output->errstr));
     output->producer = rd_kafka_new(RD_KAFKA_PRODUCER, output->config, output->errstr, sizeof(output->errstr));
 
