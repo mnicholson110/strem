@@ -1,19 +1,80 @@
 #include "../include/producer.h"
 
-kafka_output_t *initKafkaOutput(strem_config_t *config)
+kafka_output_t *initKafkaOutput()
 {
     kafka_output_t *output = (kafka_output_t *)malloc(sizeof(kafka_output_t));
 
-    // need to add error handling here
-    rd_kafka_conf_set(output->config, "bootstrap.servers", config->output_bootstrap_servers, output->errstr, sizeof(output->errstr));
-    output->producer = rd_kafka_new(RD_KAFKA_PRODUCER, output->config, output->errstr, sizeof(output->errstr));
-    output->output_topic = strdup(config->output_topic);
-
-    if (!output->producer)
+    const char *bootstrap_servers = getenv("OUTPUT_BOOTSTRAP_SERVERS");
+    if (bootstrap_servers == NULL || strlen(bootstrap_servers) == 0)
     {
-        fprintf(stderr, "Failed to create producer: %s\n", output->errstr);
+        fprintf(stdout, "No OUTPUT_BOOTSTRAP_SERVERS specified. Using INPUT_BOOTSTRAP_SERVERS instead.\n");
+        bootstrap_servers = getenv("INPUT_BOOTSTRAP_SERVERS");
+        if (bootstrap_servers == NULL)
+        {
+            fprintf(stderr, "INPUT_BOOTSTRAP_SERVERS must be set.\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    const char *output_topic = getenv("OUTPUT_TOPIC");
+    if (output_topic == NULL)
+    {
+        fprintf(stderr, "OUTPUT_TOPIC must be set.\n");
         exit(EXIT_FAILURE);
     }
+    else
+    {
+        output->output_topic = strdup(output_topic);
+    }
+
+    const char *output_key = getenv("OUTPUT_KEY");
+    if (output_key == NULL)
+    {
+        fprintf(stderr, "OUTPUT_KEY must be set.\n");
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        output->output_key = strdup(output_key);
+    }
+
+    //    const char *output_fields = getenv("OUTPUT_FIELDS");
+    //    if (output_fields == NULL)
+    //    {
+    //        fprintf(stderr, "OUTPUT_FIELDS must be set.\n");
+    //        exit(EXIT_FAILURE);
+    //    }
+    //    else
+    //    {
+    //        output->output_fields = NULL;
+    //        output->output_fields_len = 0;
+    //        char *tmp_output_fields = strdup(output_fields);
+    //        char *saveptr = NULL;
+    //        char *token = strtok_r(tmp_output_fields, ":", &saveptr);
+    //        while (token != NULL)
+    //        {
+    //            const char **tokens = realloc(output->output_fields, sizeof(char *) * (output->output_fields_len + 1));
+    //            output->output_fields = tokens;
+    //            output->output_fields[output->output_fields_len] = strdup(token);
+    //            output->output_fields_len++;
+    //            token = strtok_r(NULL, ":", &saveptr);
+    //        }
+    //        free(tmp_output_fields);
+    //    }
+
+    // need to add error handling here
+    //    rd_kafka_conf_set(output->config, "bootstrap.servers", bootstrap_servers, output->errstr, sizeof(output->errstr));
+    //    output->producer = rd_kafka_new(RD_KAFKA_PRODUCER, output->config, output->errstr, sizeof(output->errstr));
+
+    //    if (!output->producer)
+    //    {
+    //        fprintf(stderr, "Failed to create producer: %s\n", output->errstr);
+    //        exit(EXIT_FAILURE);
+    //    }
+
+    fprintf(stdout, "OUTPUT_BOOTSTRAP_SERVERS: %s\n", bootstrap_servers);
+    fprintf(stdout, "OUTPUT_TOPIC: %s\n", output->output_topic);
+    fprintf(stdout, "OUTPUT_KEY: %s\n", output->output_key);
 
     return output;
 }
@@ -48,4 +109,16 @@ retry:
         }
     }
     rd_kafka_poll(output->producer, 0);
+}
+
+void freeKafkaOutput(kafka_output_t *output)
+{
+    rd_kafka_destroy(output->producer);
+    free((void *)output->output_topic);
+    for (int i = 0; i < output->output_fields_len; ++i)
+    {
+        free((void *)output->output_fields[i]);
+    }
+    free(output);
+    return;
 }

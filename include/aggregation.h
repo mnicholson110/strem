@@ -5,12 +5,27 @@
 #include <stdbool.h>
 #include <uthash.h>
 
+typedef enum transform
+{
+    SUM,
+    AVG,
+    MAX,
+    MIN
+} transform_t;
+
+typedef union accumulator_value {
+    int num;
+    double dub;
+    const char *str;
+} accumulator_value_t;
+
 typedef struct accumulator
 {
     const char *key;
     int count;
-    const char **fields;
-    const char **values;
+    // is this needed?
+    // const char **fields;
+    accumulator_value_t *values;
     UT_hash_handle hh;
 } accumulator_t;
 

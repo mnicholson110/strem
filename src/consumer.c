@@ -1,15 +1,46 @@
 #include "../include/consumer.h"
 
-kafka_input_t *initKafkaInput(strem_config_t *config)
+kafka_input_t *initKafkaInput()
 {
     kafka_input_t *input = (kafka_input_t *)malloc(sizeof(kafka_input_t));
 
     input->consumer = NULL;
     input->config = rd_kafka_conf_new();
 
-    rd_kafka_conf_set(input->config, "bootstrap.servers", config->input_bootstrap_servers, input->errstr, sizeof(input->errstr));
-    rd_kafka_conf_set(input->config, "group.id", config->input_group_id, input->errstr, sizeof(input->errstr));
-    rd_kafka_conf_set(input->config, "auto.offset.reset", config->input_auto_offset_reset, input->errstr, sizeof(input->errstr));
+    const char *bootstrap_servers = getenv("INPUT_BOOTSTRAP_SERVERS");
+    if (bootstrap_servers == NULL)
+    {
+        fprintf(stderr, "INPUT_BOOTSTRAP_SERVERS must be set.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    const char *group_id = getenv("INPUT_GROUP_ID");
+    if (group_id == NULL)
+    {
+        fprintf(stderr, "INPUT_GROUP_ID must be set.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    const char *auto_offset_reset = getenv("INPUT_AUTO_OFFSET_RESET");
+    if (auto_offset_reset == NULL)
+    {
+        fprintf(stderr, "INPUT_AUTO_OFFSET_RESET must be set.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    const char *input_topic = getenv("INPUT_TOPIC");
+    if (input_topic == NULL)
+    {
+        fprintf(stderr, "INPUT_TOPIC must be set.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(stdout, "BOOTSTRAP_SERVERS: %s\n", bootstrap_servers);
+    rd_kafka_conf_set(input->config, "bootstrap.servers", bootstrap_servers, input->errstr, sizeof(input->errstr));
+    fprintf(stdout, "GROUP_ID: %s\n", group_id);
+    rd_kafka_conf_set(input->config, "group.id", group_id, input->errstr, sizeof(input->errstr));
+    fprintf(stdout, "AUTO_OFFSET_RESET: %s\n", auto_offset_reset);
+    rd_kafka_conf_set(input->config, "auto.offset.reset", auto_offset_reset, input->errstr, sizeof(input->errstr));
 
     input->consumer = rd_kafka_new(RD_KAFKA_CONSUMER, input->config, input->errstr, sizeof(input->errstr));
     if (!input->consumer)
@@ -18,8 +49,39 @@ kafka_input_t *initKafkaInput(strem_config_t *config)
         exit(EXIT_FAILURE);
     }
 
+    // parse input_fields (json pointers);
+    const char *input_fields = getenv("INPUT_FIELDS");
+    if (input_fields == NULL)
+    {
+        fprintf(stderr, "INPUT_FIELDS must be set.\n");
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        input->input_fields = NULL;
+        input->input_fields_len = 0;
+        char *tmp_input_fields = strdup(input_fields);
+        char *saveptr = NULL;
+        char *token = strtok_r(tmp_input_fields, ":", &saveptr);
+        while (token != NULL)
+        {
+            const char **tokens = realloc(input->input_fields, sizeof(char *) * (input->input_fields_len + 1));
+            input->input_fields = tokens;
+            input->input_fields[input->input_fields_len] = strdup(token);
+            input->input_fields_len++;
+            token = strtok_r(NULL, ":", &saveptr);
+        }
+        free(tmp_input_fields);
+    }
+
+    fprintf(stdout, "INPUT_FIELDS:\n");
+    for (int i = 0; i < input->input_fields_len; ++i)
+    {
+        fprintf(stdout, "%s\n", input->input_fields[i]);
+    }
+
     rd_kafka_topic_partition_list_t *sub = rd_kafka_topic_partition_list_new(1);
-    rd_kafka_topic_partition_list_add(sub, config->input_topic, RD_KAFKA_PARTITION_UA);
+    rd_kafka_topic_partition_list_add(sub, input_topic, RD_KAFKA_PARTITION_UA);
 
     input->error = rd_kafka_subscribe(input->consumer, sub);
     rd_kafka_topic_partition_list_destroy(sub);
@@ -65,4 +127,16 @@ char *pollMessage(kafka_input_t *input)
 
     rd_kafka_message_destroy(message);
     return payload_copy;
+}
+
+void freeKafkaInput(kafka_input_t *input)
+{
+    rd_kafka_consumer_close(input->consumer);
+    rd_kafka_destroy(input->consumer);
+    for (int i = 0; i < input->input_fields_len; ++i)
+    {
+        free((void *)input->input_fields[i]);
+    }
+    free(input);
+    return;
 }
