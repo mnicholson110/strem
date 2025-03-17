@@ -10,7 +10,6 @@ typedef struct accumulator
     const char *key;
     int count;
     const char **fields;
-    const char **transforms;
     const char **values;
     UT_hash_handle hh;
 } accumulator_t;
