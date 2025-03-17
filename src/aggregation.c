@@ -17,7 +17,7 @@ const char *serialize(accumulator_t *entry, const char **field_names)
 
     json_object_put(obj);
 
-    printf("%s\n", res);
+    // printf("%s\n", res);
     return res;
 }
 

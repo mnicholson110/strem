@@ -41,7 +41,6 @@ int main()
         json_object *root_obj = json_tokener_parse(message);
         if (root_obj)
         {
-            // check for existence in hashmap
             const char *key = jsonGetCValue(const char *, root_obj, output->output_key);
             entry = NULL;
             HASH_FIND_STR(state, key, entry);

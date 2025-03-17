@@ -63,7 +63,6 @@ kafka_output_t *initKafkaOutput()
     }
 
     // need to add error handling here
-
     output->config = rd_kafka_conf_new();
     rd_kafka_conf_set(output->config, "bootstrap.servers", bootstrap_servers, output->errstr, sizeof(output->errstr));
     output->producer = rd_kafka_new(RD_KAFKA_PRODUCER, output->config, output->errstr, sizeof(output->errstr));
@@ -115,6 +114,7 @@ retry:
 
 void freeKafkaOutput(kafka_output_t *output)
 {
+    rd_kafka_flush(output->producer, 1000);
     rd_kafka_destroy(output->producer);
     free((void *)output->output_topic);
     for (int i = 0; i < output->output_fields_len; ++i)
