@@ -8,6 +8,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+typedef enum filter_on_type
+{
+    EQ,
+    GT,
+    LT,
+    GTE,
+    LTE,
+    NEQ
+} filter_on_type_t;
+
 typedef struct kafka_input
 {
     rd_kafka_t *consumer;
@@ -16,7 +26,10 @@ typedef struct kafka_input
     char errstr[512];
     int input_fields_len;
     const char **input_fields;
-    transform_t *transforms;
+    int filter_on_fields_len;
+    const char **filter_on_fields;
+    filter_on_type_t *filter_on_types;
+    accumulator_value_t *filter_on_values;
 } kafka_input_t;
 
 kafka_input_t *initKafkaInput();

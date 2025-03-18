@@ -1,4 +1,4 @@
-#include "../include/producer.h"
+#include "../include/output.h"
 
 kafka_output_t *initKafkaOutput()
 {

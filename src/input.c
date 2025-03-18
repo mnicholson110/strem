@@ -1,4 +1,4 @@
-#include "../include/consumer.h"
+#include "../include/input.h"
 
 kafka_input_t *initKafkaInput()
 {
@@ -78,6 +78,63 @@ kafka_input_t *initKafkaInput()
     for (int i = 0; i < input->input_fields_len; ++i)
     {
         fprintf(stdout, "%s\n", input->input_fields[i]);
+    }
+
+    const char *filter_on_fields = getenv("FILTER_ON_FIELDS");
+    if (filter_on_fields != NULL && strlen(filter_on_fields) > 0)
+    {
+        input->filter_on_fields = NULL;
+        input->filter_on_fields_len = 0;
+        char *tmp_filter_on_fields = strdup(filter_on_fields);
+        char *saveptr = NULL;
+        char *token = strtok_r(tmp_filter_on_fields, ":", &saveptr);
+        while (token != NULL)
+        {
+            const char **tokens = realloc(input->filter_on_fields, sizeof(char *) * (input->filter_on_fields_len + 1));
+            input->filter_on_fields = tokens;
+            input->filter_on_fields[input->filter_on_fields_len] = strdup(token);
+            input->filter_on_fields_len++;
+            token = strtok_r(NULL, ":", &saveptr);
+        }
+        free(tmp_filter_on_fields);
+    }
+
+    const char *filter_on_types = getenv("FILTER_ON_TYPES");
+    if (filter_on_types != NULL && strlen(filter_on_types) > 0)
+    {
+        input->filter_on_types = malloc(sizeof(filter_on_type_t) * input->filter_on_fields_len);
+        char *tmp_filter_on_types = strdup(filter_on_types);
+        char *saveptr = NULL;
+        char *token = strtok_r(tmp_filter_on_types, ":", &saveptr);
+        for (int i = 0; i < input->filter_on_fields_len; ++i)
+        {
+            if (strcmp(token, "eq") == 0 || strcmp(token, "EQ") == 0)
+            {
+                input->filter_on_types[i] = EQ;
+            }
+            else if (strcmp(token, "lt") == 0 || strcmp(token, "LT") == 0)
+            {
+                input->filter_on_types[i] = LT;
+            }
+            else if (strcmp(token, "gt") == 0 || strcmp(token, "GT") == 0)
+            {
+                input->filter_on_types[i] = GT;
+            }
+            else if (strcmp(token, "lte") == 0 || strcmp(token, "LTE") == 0)
+            {
+                input->filter_on_types[i] = LTE;
+            }
+            else if (strcmp(token, "gte") == 0 || strcmp(token, "GTE") == 0)
+            {
+                input->filter_on_types[i] = GTE;
+            }
+            else if (strcmp(token, "neq") == 0 || strcmp(token, "NEQ") == 0)
+            {
+                input->filter_on_types[i] = NEQ;
+            }
+            token = strtok_r(NULL, ":", &saveptr);
+        }
+        free(tmp_filter_on_types);
     }
 
     rd_kafka_topic_partition_list_t *sub = rd_kafka_topic_partition_list_new(1);

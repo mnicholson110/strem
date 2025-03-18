@@ -1,12 +1,13 @@
 #include <json-c/json_object.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <uthash.h>
 
 #include "../include/aggregation.h"
-#include "../include/consumer.h"
+#include "../include/input.h"
 #include "../include/json_parser.h"
-#include "../include/producer.h"
+#include "../include/output.h"
 
 volatile sig_atomic_t run = true;
 
@@ -27,9 +28,12 @@ int main()
     accumulator_t *state = NULL;
     accumulator_t *entry = NULL;
     const char *out_message = NULL;
+    bool set_output_types = false;
+    bool filter;
 
     while (run)
     {
+        filter = false;
 
         message = pollMessage(input);
 
@@ -41,6 +45,11 @@ int main()
         json_object *root_obj = json_tokener_parse(message);
         if (root_obj)
         {
+            if (!set_output_types)
+            {
+                output->output_types = malloc(sizeof(json_type *) * input->input_fields_len);
+                input->filter_on_values = malloc(sizeof(accumulator_value_t *) * input->filter_on_fields_len);
+            }
             const char *key = jsonGetCValue(const char *, root_obj, output->output_key);
             entry = NULL;
             HASH_FIND_STR(state, key, entry);
@@ -52,53 +61,131 @@ int main()
                 entry->values = malloc(sizeof(accumulator_value_t) * input->input_fields_len);
                 entry->values_len = input->input_fields_len;
 
-                for (int i = 0; i < input->input_fields_len; ++i)
+                if (!set_output_types)
                 {
-                    json_object *target = jsonGetNestedValue(root_obj, input->input_fields[i]);
-                    switch (json_object_get_type(target))
+                    const char *filter_on_values = getenv("FILTER_ON_VALUES");
+                    if (filter_on_values != NULL && strlen(filter_on_values) > 0)
+                    {
+                        char *tmp_filter_on_values = strdup(filter_on_values);
+                        char *saveptr = NULL;
+                        char *token = strtok_r(tmp_filter_on_values, ":", &saveptr);
+                        for (int i = 0; i < input->filter_on_fields_len; ++i)
+                        {
+                            json_object *filter_target = jsonGetNestedValue(root_obj, input->filter_on_fields[i]);
+                            switch (json_object_get_type(filter_target))
+                            {
+                            case json_type_int:
+                                input->filter_on_values[i].num = atoi(token);
+                                break;
+                            case json_type_double:
+                                input->filter_on_values[i].dub = atof(token);
+                                break;
+                            case json_type_string:
+                                input->filter_on_values[i].str = strdup(token);
+                                break;
+                            default:
+                                break;
+                            }
+                            token = strtok_r(NULL, ":", &saveptr);
+                        }
+                        free(tmp_filter_on_values);
+                    }
+                }
+
+                // apply filters
+                for (int i = 0; i < input->filter_on_fields_len; ++i)
+                {
+                    json_object *filter_target = jsonGetNestedValue(root_obj, input->filter_on_fields[i]);
+                    switch (json_object_get_type(filter_target))
                     {
                     case json_type_int:
-                        entry->values[i].num = json_object_get_int(target);
+                        // TODO
                         break;
                     case json_type_double:
-                        entry->values[i].dub = json_object_get_double(target);
+                        // TODO
                         break;
                     case json_type_string:
-                        entry->values[i].str = strdup(json_object_get_string(target));
+                        switch (input->filter_on_types[i])
+                        {
+                        case EQ:
+                            if (strcmp(input->filter_on_values[i].str, json_object_get_string(filter_target)) != 0)
+                            {
+                                filter = true;
+                            }
+                        default:
+                            break;
+                        }
                         break;
                     default:
                         break;
                     }
-                    json_object_put(target);
                 }
-                HASH_ADD_STR(state, key, entry);
-            }
-            else
-            {
-                for (int i = 0; i < input->input_fields_len; ++i)
+                if (!filter)
                 {
-                    json_object *target = jsonGetNestedValue(root_obj, input->input_fields[i]);
-                    switch (json_object_get_type(target))
+                    for (int i = 0; i < input->input_fields_len; ++i)
                     {
-                    case json_type_int:
-                        entry->values[i].num += json_object_get_int(target);
-                        break;
-                    case json_type_double:
-                        entry->values[i].dub += json_object_get_double(target);
-                        break;
-                    case json_type_string:
-                        break;
-                    default:
-                        break;
+                        json_object *target = jsonGetNestedValue(root_obj, input->input_fields[i]);
+                        switch (json_object_get_type(target))
+                        {
+                        case json_type_int:
+                            entry->values[i].num = json_object_get_int(target);
+                            if (!set_output_types)
+                            {
+                                output->output_types[i] = json_type_int;
+                            }
+                            break;
+                        case json_type_double:
+                            entry->values[i].dub = json_object_get_double(target);
+                            if (!set_output_types)
+                            {
+                                output->output_types[i] = json_type_double;
+                            }
+                            break;
+                        case json_type_string:
+                            entry->values[i].str = strdup(json_object_get_string(target));
+                            if (!set_output_types)
+                            {
+                                output->output_types[i] = json_type_string;
+                            }
+                            break;
+                        default:
+                            break;
+                        }
+                        json_object_put(target);
                     }
-                    json_object_put(target);
+                    if (!set_output_types)
+                    {
+                        set_output_types = true;
+                    }
+                    HASH_ADD_STR(state, key, entry);
                 }
-                entry->count++;
+                else
+                {
+                    for (int i = 0; i < input->input_fields_len; ++i)
+                    {
+                        json_object *target = jsonGetNestedValue(root_obj, input->input_fields[i]);
+                        switch (json_object_get_type(target))
+                        {
+                        case json_type_int:
+                            entry->values[i].num += json_object_get_int(target);
+                            break;
+                        case json_type_double:
+                            entry->values[i].dub += json_object_get_double(target);
+                            break;
+                        case json_type_string:
+                            break;
+                        default:
+                            break;
+                        }
+                        json_object_put(target);
+                    }
+                    entry->count++;
+                }
+                out_message = serialize(entry, output);
+                produceMessage(output, entry->key, out_message);
+                free((void *)out_message);
             }
             json_object_put(root_obj);
-            out_message = serialize(entry, output->output_fields);
-            produceMessage(output, entry->key, out_message);
-            free((void *)out_message);
         }
         else
         {
@@ -116,7 +203,6 @@ int main()
         free(entry);
     }
 
-    printf("Cleaning up!\n");
     freeKafkaInput(input);
     freeKafkaOutput(output);
 
