@@ -4,6 +4,13 @@ kafka_output_t *initKafkaOutput()
 {
     kafka_output_t *output = (kafka_output_t *)malloc(sizeof(kafka_output_t));
 
+    output->producer = NULL;
+    output->config = NULL;
+    output->output_topic = NULL;
+    output->output_key = NULL;
+    output->output_fields = NULL;
+    output->output_types = NULL;
+
     const char *bootstrap_servers = getenv("OUTPUT_BOOTSTRAP_SERVERS");
     if (bootstrap_servers == NULL || strlen(bootstrap_servers) == 0)
     {
@@ -113,9 +120,14 @@ void freeKafkaOutput(kafka_output_t *output)
     rd_kafka_flush(output->producer, 1000);
     rd_kafka_destroy(output->producer);
     free((void *)output->output_topic);
+    free((void *)output->output_key);
     for (int i = 0; i < output->output_fields_len; ++i)
     {
         free((void *)output->output_fields[i]);
+    }
+    if (output->output_types != NULL)
+    {
+        free((void *)output->output_types);
     }
     free(output);
     return;

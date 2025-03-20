@@ -33,4 +33,7 @@ clean:
 run: $(TARGET)
 	./$(TARGET)
 
+run-debug: debug $(TARGET)
+	./$(TARGET)
+
 .PHONY: all clean run debug

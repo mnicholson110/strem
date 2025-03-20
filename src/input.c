@@ -1,4 +1,5 @@
 #include "../include/input.h"
+#include <stdio.h>
 
 kafka_input_t *initKafkaInput()
 {
@@ -6,6 +7,10 @@ kafka_input_t *initKafkaInput()
 
     input->consumer = NULL;
     input->config = rd_kafka_conf_new();
+    input->input_fields = NULL;
+    input->filter_on_fields = NULL;
+    input->filter_on_types = NULL;
+    input->filter_on_values = NULL;
 
     const char *bootstrap_servers = getenv("INPUT_BOOTSTRAP_SERVERS");
     if (bootstrap_servers == NULL)
@@ -188,7 +193,11 @@ void freeKafkaInput(kafka_input_t *input)
     for (int i = 0; i < input->filter_on_fields_len; ++i)
     {
         free((void *)input->filter_on_fields[i]);
-        free((void *)input->filter_on_types[i]);
+    }
+    if (input->filter_on_values != NULL)
+    {
+        free((void *)input->filter_on_types);
+        free((void *)input->filter_on_values);
     }
     free(input);
     return;
