@@ -15,4 +15,4 @@ export OUTPUT_FIELDS="total_order_amount"
 #suppress warning on MacOS
 export MallocNanoZone=0
 
-cd ../bin && ./strem 
+cd .. && make debug && make run

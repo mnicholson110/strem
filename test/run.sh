@@ -12,4 +12,4 @@ export OUTPUT_TOPIC="new_topic"
 export OUTPUT_KEY="/data/store/store_id"
 export OUTPUT_FIELDS="total_order_amount"
 
-cd .. && make run
+cd .. && make && make run

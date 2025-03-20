@@ -17,7 +17,7 @@ endif
 
 EXTRA_FLAGS = -O3
 
-all: $(TARGET)
+all: clean $(TARGET)
 
 $(TARGET): $(SRC)
 	mkdir -p bin
@@ -31,9 +31,6 @@ clean:
 	rm -rf bin/
 
 run: $(TARGET)
-	./$(TARGET)
-
-run-debug: debug $(TARGET)
 	./$(TARGET)
 
 .PHONY: all clean run debug
