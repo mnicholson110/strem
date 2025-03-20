@@ -2,6 +2,7 @@
 #define strem_kafka_input_h
 
 #include "aggregation.h"
+#include "json_parser.h"
 
 #include <librdkafka/rdkafka.h>
 #include <stdbool.h>
@@ -35,5 +36,6 @@ typedef struct kafka_input
 kafka_input_t *initKafkaInput();
 char *pollMessage(kafka_input_t *input);
 void freeKafkaInput(kafka_input_t *input);
+bool applyFilter(json_object *obj, kafka_input_t *input);
 
 #endif

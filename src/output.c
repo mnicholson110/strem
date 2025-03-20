@@ -97,7 +97,7 @@ retry:
         RD_KAFKA_V_TOPIC(output->output_topic),
         RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
         RD_KAFKA_V_KEY(key, key_len),
-        RD_KAFKA_V_VALUE(value, len),
+        RD_KAFKA_V_VALUE((void *)value, len),
         RD_KAFKA_V_OPAQUE(NULL),
         RD_KAFKA_V_END);
 

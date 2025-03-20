@@ -19,6 +19,7 @@ typedef union accumulator_value {
     int num;
     double dub;
     const char *str;
+    bool boolean;
 } accumulator_value_t;
 
 typedef struct accumulator

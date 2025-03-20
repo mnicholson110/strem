@@ -194,6 +194,154 @@ void freeKafkaInput(kafka_input_t *input)
     {
         free((void *)input->input_fields[i]);
     }
+    for (int i = 0; i < input->filter_on_fields_len; ++i)
+    {
+        free((void *)input->filter_on_fields[i]);
+        free((void *)input->filter_on_types[i]);
+    }
     free(input);
     return;
+}
+
+bool applyFilter(json_object *obj, kafka_input_t *input)
+{
+    for (int i = 0; i < input->filter_on_fields_len; ++i)
+    {
+        json_object *filter_target = jsonGetNestedValue(obj, input->filter_on_fields[i]);
+        if (!filter_target)
+            continue;
+
+        switch (json_object_get_type(filter_target))
+        {
+        case json_type_boolean:
+            switch (input->filter_on_types[i])
+            {
+            case EQ:
+                if ((input->filter_on_values[i].boolean && !json_object_get_boolean(filter_target)) ||
+                    (!input->filter_on_values[i].boolean && json_object_get_boolean(filter_target)))
+                {
+                    return false;
+                }
+                break;
+            case NEQ:
+                if ((input->filter_on_values[i].boolean && json_object_get_boolean(filter_target)) ||
+                    (!input->filter_on_values[i].boolean && !json_object_get_boolean(filter_target)))
+                {
+                    return false;
+                }
+                break;
+            default:
+                break;
+            }
+            break;
+        case json_type_int:
+            switch (input->filter_on_types[i])
+            {
+            case EQ:
+                if (json_object_get_int(filter_target) != input->filter_on_values[i].num)
+                {
+                    return false;
+                }
+                break;
+            case NEQ:
+                if (json_object_get_int(filter_target) == input->filter_on_values[i].num)
+                {
+                    return false;
+                }
+                break;
+            case GT:
+                if (json_object_get_int(filter_target) <= input->filter_on_values[i].num)
+                {
+                    return false;
+                }
+                break;
+            case LT:
+                if (json_object_get_int(filter_target) >= input->filter_on_values[i].num)
+                {
+                    return false;
+                }
+                break;
+            case GTE:
+                if (json_object_get_int(filter_target) < input->filter_on_values[i].num)
+                {
+                    return false;
+                }
+                break;
+            case LTE:
+                if (json_object_get_int(filter_target) > input->filter_on_values[i].num)
+                {
+                    return false;
+                }
+                break;
+            default:
+                break;
+            }
+            break;
+        case json_type_double:
+            switch (input->filter_on_types[i])
+            {
+            case EQ:
+                if (json_object_get_double(filter_target) != input->filter_on_values[i].dub)
+                {
+                    return false;
+                }
+                break;
+            case NEQ:
+                if (json_object_get_double(filter_target) == input->filter_on_values[i].dub)
+                {
+                    return false;
+                }
+                break;
+            case GT:
+                if (json_object_get_double(filter_target) <= input->filter_on_values[i].dub)
+                {
+                    return false;
+                }
+                break;
+            case LT:
+                if (json_object_get_double(filter_target) >= input->filter_on_values[i].dub)
+                {
+                    return false;
+                }
+                break;
+            case GTE:
+                if (json_object_get_double(filter_target) < input->filter_on_values[i].dub)
+                {
+                    return false;
+                }
+                break;
+            case LTE:
+                if (json_object_get_double(filter_target) > input->filter_on_values[i].dub)
+                {
+                    return false;
+                }
+                break;
+            default:
+                break;
+            }
+            break;
+        case json_type_string:
+            switch (input->filter_on_types[i])
+            {
+            case EQ:
+                if (strcmp(input->filter_on_values[i].str, json_object_get_string(filter_target)) != 0)
+                {
+                    return false;
+                }
+                break;
+            case NEQ:
+                if (strcmp(input->filter_on_values[i].str, json_object_get_string(filter_target)) == 0)
+                {
+                    return false;
+                }
+                break;
+            default:
+                break;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+    return true;
 }
