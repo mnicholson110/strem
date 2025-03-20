@@ -35,11 +35,8 @@ kafka_input_t *initKafkaInput()
         exit(EXIT_FAILURE);
     }
 
-    fprintf(stdout, "BOOTSTRAP_SERVERS: %s\n", bootstrap_servers);
     rd_kafka_conf_set(input->config, "bootstrap.servers", bootstrap_servers, input->errstr, sizeof(input->errstr));
-    fprintf(stdout, "GROUP_ID: %s\n", group_id);
     rd_kafka_conf_set(input->config, "group.id", group_id, input->errstr, sizeof(input->errstr));
-    fprintf(stdout, "AUTO_OFFSET_RESET: %s\n", auto_offset_reset);
     rd_kafka_conf_set(input->config, "auto.offset.reset", auto_offset_reset, input->errstr, sizeof(input->errstr));
 
     input->consumer = rd_kafka_new(RD_KAFKA_CONSUMER, input->config, input->errstr, sizeof(input->errstr));
@@ -74,12 +71,6 @@ kafka_input_t *initKafkaInput()
         free(tmp_input_fields);
     }
 
-    fprintf(stdout, "INPUT_FIELDS:\n");
-    for (int i = 0; i < input->input_fields_len; ++i)
-    {
-        fprintf(stdout, "%s\n", input->input_fields[i]);
-    }
-
     const char *filter_on_fields = getenv("FILTER_ON_FIELDS");
     if (filter_on_fields != NULL && strlen(filter_on_fields) > 0)
     {
@@ -102,7 +93,7 @@ kafka_input_t *initKafkaInput()
     const char *filter_on_types = getenv("FILTER_ON_TYPES");
     if (filter_on_types != NULL && strlen(filter_on_types) > 0)
     {
-        input->filter_on_types = malloc(sizeof(filter_on_type_t) * input->filter_on_fields_len);
+        input->filter_on_types = malloc(sizeof(filter_on_type_t *) * input->filter_on_fields_len);
         char *tmp_filter_on_types = strdup(filter_on_types);
         char *saveptr = NULL;
         char *token = strtok_r(tmp_filter_on_types, ":", &saveptr);
@@ -209,7 +200,9 @@ bool applyFilter(json_object *obj, kafka_input_t *input)
     {
         json_object *filter_target = jsonGetNestedValue(obj, input->filter_on_fields[i]);
         if (!filter_target)
+        {
             continue;
+        }
 
         switch (json_object_get_type(filter_target))
         {
@@ -342,6 +335,7 @@ bool applyFilter(json_object *obj, kafka_input_t *input)
         default:
             break;
         }
+        json_object_put(filter_target);
     }
     return true;
 }

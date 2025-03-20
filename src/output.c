@@ -7,7 +7,7 @@ kafka_output_t *initKafkaOutput()
     const char *bootstrap_servers = getenv("OUTPUT_BOOTSTRAP_SERVERS");
     if (bootstrap_servers == NULL || strlen(bootstrap_servers) == 0)
     {
-        fprintf(stdout, "No OUTPUT_BOOTSTRAP_SERVERS specified. Using INPUT_BOOTSTRAP_SERVERS instead.\n");
+        fprintf(stderr, "No OUTPUT_BOOTSTRAP_SERVERS specified. Using INPUT_BOOTSTRAP_SERVERS instead.\n");
         bootstrap_servers = getenv("INPUT_BOOTSTRAP_SERVERS");
         if (bootstrap_servers == NULL)
         {
@@ -72,10 +72,6 @@ kafka_output_t *initKafkaOutput()
         fprintf(stderr, "Failed to create producer: %s\n", output->errstr);
         exit(EXIT_FAILURE);
     }
-
-    fprintf(stdout, "OUTPUT_BOOTSTRAP_SERVERS: %s\n", bootstrap_servers);
-    fprintf(stdout, "OUTPUT_TOPIC: %s\n", output->output_topic);
-    fprintf(stdout, "OUTPUT_KEY: %s\n", output->output_key);
 
     return output;
 }

@@ -31,7 +31,7 @@ int main()
     accumulator_t *entry = NULL;
     const char *out_message = NULL;
     bool first_message = true;
-    bool filter;
+    bool filter = false;
 
     while (run)
     {
@@ -50,21 +50,21 @@ int main()
                 initOutputTypesAndFilters(input, output, root_obj);
                 first_message = false;
             }
-            const char *key = jsonGetCValue(const char *, root_obj, output->output_key);
-            entry = NULL;
-            HASH_FIND_STR(state, key, entry);
-            if (!entry)
-            {
-                entry = (accumulator_t *)malloc(sizeof(accumulator_t));
-                entry->key = key;
-                entry->count = 1;
-                entry->values = malloc(sizeof(accumulator_value_t) * input->input_fields_len);
-                entry->values_len = input->input_fields_len;
 
-                // apply filters
-                filter = applyFilter(root_obj, input);
-                if (filter)
+            filter = applyFilter(root_obj, input);
+
+            if (filter)
+            {
+                entry = NULL;
+                const char *key = jsonGetCValue(const char *, root_obj, output->output_key);
+                HASH_FIND_STR(state, key, entry);
+                if (!entry)
                 {
+                    entry = (accumulator_t *)malloc(sizeof(accumulator_t));
+                    entry->key = key;
+                    entry->count = 1;
+                    entry->values = malloc(sizeof(accumulator_value_t) * input->input_fields_len);
+                    entry->values_len = input->input_fields_len;
                     for (int i = 0; i < input->input_fields_len; ++i)
                     {
                         json_object *target = jsonGetNestedValue(root_obj, input->input_fields[i]);
@@ -88,6 +88,7 @@ int main()
                 }
                 else
                 {
+                    // this should be substituted with transformation logic
                     for (int i = 0; i < input->input_fields_len; ++i)
                     {
                         json_object *target = jsonGetNestedValue(root_obj, input->input_fields[i]);
@@ -116,7 +117,7 @@ int main()
         }
         else
         {
-            fprintf(stdout, "No root_obj\n");
+            fprintf(stderr, "No root_obj\n");
             continue;
         }
         free(message);
@@ -138,8 +139,8 @@ int main()
 
 void initOutputTypesAndFilters(kafka_input_t *input, kafka_output_t *output, json_object *root_obj)
 {
-    output->output_types = malloc(sizeof(json_type) * input->input_fields_len);
-    input->filter_on_values = malloc(sizeof(accumulator_value_t) * input->filter_on_fields_len);
+    output->output_types = malloc(sizeof(json_type *) * input->input_fields_len);
+    input->filter_on_values = malloc(sizeof(accumulator_value_t *) * input->filter_on_fields_len);
 
     const char *filter_on_values = getenv("FILTER_ON_VALUES");
     if (filter_on_values != NULL && strlen(filter_on_values) > 0)

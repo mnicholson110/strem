@@ -15,11 +15,17 @@ else
     LDLIBS = -lrdkafka -ljson-c
 endif
 
+EXTRA_FLAGS = -O3
+
 all: $(TARGET)
 
 $(TARGET): $(SRC)
 	mkdir -p bin
-	gcc $(CFLAGS) -Wall -O3 -o $(TARGET) $(SRC) $(LDFLAGS) $(LDLIBS)
+	gcc $(CFLAGS) -Wall $(EXTRA_FLAGS) -o $(TARGET) $(SRC) $(LDFLAGS) $(LDLIBS)
+
+# Debug target: adds debugging symbols, disables optimization, and enables AddressSanitizer
+debug: EXTRA_FLAGS = -g -O0 -fsanitize=address
+debug: clean $(TARGET)
 
 clean:
 	rm -rf bin/
@@ -27,4 +33,4 @@ clean:
 run: $(TARGET)
 	./$(TARGET)
 
-.PHONY: all clean run
+.PHONY: all clean run debug
