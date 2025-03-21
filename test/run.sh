@@ -11,5 +11,6 @@ export FILTER_ON_VALUES="Delivered"
 export OUTPUT_TOPIC="new_topic"
 export OUTPUT_KEY="/data/store/store_id"
 export OUTPUT_FIELDS="total_order_amount"
+#export TRANSFORMS="sum"
 
 cd .. && make && make run
