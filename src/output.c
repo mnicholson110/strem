@@ -6,10 +6,6 @@ kafka_output_t *initKafkaOutput()
 
     output->producer = NULL;
     output->config = NULL;
-    output->output_topic = NULL;
-    output->output_key = NULL;
-    output->output_fields = NULL;
-    output->output_types = NULL;
 
     const char *bootstrap_servers = getenv("OUTPUT_BOOTSTRAP_SERVERS");
     if (bootstrap_servers == NULL || strlen(bootstrap_servers) == 0)
@@ -21,52 +17,6 @@ kafka_output_t *initKafkaOutput()
             fprintf(stderr, "INPUT_BOOTSTRAP_SERVERS must be set.\n");
             exit(EXIT_FAILURE);
         }
-    }
-
-    const char *output_topic = getenv("OUTPUT_TOPIC");
-    if (output_topic == NULL)
-    {
-        fprintf(stderr, "OUTPUT_TOPIC must be set.\n");
-        exit(EXIT_FAILURE);
-    }
-    else
-    {
-        output->output_topic = strdup(output_topic);
-    }
-
-    const char *output_key = getenv("OUTPUT_KEY");
-    if (output_key == NULL)
-    {
-        fprintf(stderr, "OUTPUT_KEY must be set.\n");
-        exit(EXIT_FAILURE);
-    }
-    else
-    {
-        output->output_key = strdup(output_key);
-    }
-
-    const char *output_fields = getenv("OUTPUT_FIELDS");
-    if (output_fields == NULL)
-    {
-        fprintf(stderr, "OUTPUT_FIELDS must be set.\n");
-        exit(EXIT_FAILURE);
-    }
-    else
-    {
-        output->output_fields = NULL;
-        output->output_fields_len = 0;
-        char *tmp_output_fields = strdup(output_fields);
-        char *saveptr = NULL;
-        char *token = strtok_r(tmp_output_fields, ":", &saveptr);
-        while (token != NULL)
-        {
-            const char **tokens = realloc(output->output_fields, sizeof(char *) * (output->output_fields_len + 1));
-            output->output_fields = tokens;
-            output->output_fields[output->output_fields_len] = strdup(token);
-            output->output_fields_len++;
-            token = strtok_r(NULL, ":", &saveptr);
-        }
-        free(tmp_output_fields);
     }
 
     // need to add error handling here
@@ -83,7 +33,7 @@ kafka_output_t *initKafkaOutput()
     return output;
 }
 
-void produceMessage(kafka_output_t *output, const char *key, const char *value)
+void produceMessage(kafka_output_t *output, strem_config_t *config, const char *key, const char *value)
 {
     size_t len = strlen(value);
     if (len == 0)
@@ -97,7 +47,7 @@ void produceMessage(kafka_output_t *output, const char *key, const char *value)
 retry:
     output->error = rd_kafka_producev(
         output->producer,
-        RD_KAFKA_V_TOPIC(output->output_topic),
+        RD_KAFKA_V_TOPIC(config->output_topic),
         RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
         RD_KAFKA_V_KEY(key, key_len),
         RD_KAFKA_V_VALUE((void *)value, len),
@@ -119,16 +69,39 @@ void freeKafkaOutput(kafka_output_t *output)
 {
     rd_kafka_flush(output->producer, 1000);
     rd_kafka_destroy(output->producer);
-    free((void *)output->output_topic);
-    free((void *)output->output_key);
-    for (int i = 0; i < output->output_fields_len; ++i)
-    {
-        free((void *)output->output_fields[i]);
-    }
-    if (output->output_types != NULL)
-    {
-        free((void *)output->output_types);
-    }
     free(output);
     return;
+}
+
+const char *serialize(accumulator_t *entry, strem_config_t *config)
+{
+    json_object *obj = json_object_new_object();
+
+    for (int i = 0; i < entry->values_len; ++i)
+    {
+        switch (config->output_types[i])
+        {
+        case json_type_int:
+            json_object_object_add(obj, config->output_fields[i], json_object_new_int(entry->values[i].num));
+            break;
+        case json_type_double:
+            json_object_object_add(obj, config->output_fields[i], json_object_new_double(entry->values[i].dub));
+            break;
+        case json_type_string:
+            json_object_object_add(obj, config->output_fields[i], json_object_new_string(entry->values[i].str));
+            break;
+        default:
+            break;
+        }
+    }
+
+    json_object_object_add(obj, "count", json_object_new_int(entry->count));
+
+    const char *json_str = json_object_to_json_string(obj);
+    const char *res = strdup(json_str);
+
+    json_object_put(obj);
+
+    // printf("%s\n", res);
+    return res;
 }
