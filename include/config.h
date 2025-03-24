@@ -45,8 +45,6 @@ typedef struct accumulator
     UT_hash_handle hh;
 } accumulator_t;
 
-extern pthread_rwlock_t state_lock;
-
 typedef struct strem_config
 {
     int input_fields_len;
